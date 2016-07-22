@@ -9,7 +9,7 @@ import time
 import json
 import html
 import threading
-
+import os
 #自动帮你选专选课，如果想要选公选/专必课/公必，去找到对应的教学班号，写在jxhbs里
 
 sid = "1433xxxx" #学号
@@ -49,7 +49,9 @@ res = session.post("http://uems.sysu.edu.cn/elect/login", data = data);
 if res.status_code == 200:
   sid = res.url[res.url.find("sid=")+4:]
 else:
-  pass
+  #登陆失败，退出程序
+  print("账号或者密码错误,或者服务器改变了验证方式")
+  os._exit(0)
 
 # 获取课程编号
 now = datetime.datetime.now()
@@ -87,7 +89,6 @@ courseIds.extend(jxbhs)
 #   print(course + "任课老师:" + teacher);
 
 #选课，每隔两秒选一次
-print(courseIds)
 def selectSingleCourse(courseId):
   result = True
   while result:
@@ -113,7 +114,11 @@ def selectSingleCourse(courseId):
     elif infoData["err"]["caurse"]:
       print ( infoData["err"]["caurse"],'已从待选列表中去除')
       result = False
+      
+    # 通过这个来设置抢课间隔
     time.sleep(2)
+
+#创建多个线程，每一个线程负责抢一个课
 threads = []
 for i in courseIds:
   t1 = threading.Thread(target=selectSingleCourse, args=(i,))
@@ -123,6 +128,7 @@ for t in threads:
   t.setDaemon(True)
   t.start() 
 
+# 父进程不被中止，不用join()的原因是，用了之后你没办法手动结束
 while True:
     time.sleep(2)
 # while courseIds:
